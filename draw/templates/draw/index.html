@@ -16,21 +16,126 @@
 </head>
 <body>
     <!-- You may change the dimensions of this canvas -->
-    <canvas id="myCanvas" width="750px" height="750px"></canvas>
+    <canvas id="myCanvas" width="1000px" height="1000px"></canvas>
 </body>
+  
+<script>
+var all_lines = []
+colordict = {1:'#00FFFF', 2:'#8A2BE2', 3:'#000000', 4:'#7FFF00', 5:'#DC143C',	6:'#006400', 7:'#FF00FF',8:'#000080', 9:'#FFD700', 10:'#0000FF', 11:'#7CFC00',12: '#778899', 13:'#9370DB', 14: '#FF0000'}
+var ID = Math.floor((Math.random() * 15) + 1);
+line_hist = []
+var socket = new WebSocket('wss://p3-websockets-csn1011-collinneale169479.codeanyapp.com/ws/draw');  
+socket.onmessage = function(receivedMessage) {
+ var nameArr = receivedMessage.data.split(',');
+console.log(nameArr);
+  if (mode == 'all'){
+  update(parseInt(nameArr[1]),parseInt(nameArr[2]),parseInt(nameArr[3]),parseInt(nameArr[4]), nameArr[0])
+  }
+};
+</script>
+  
+  
 <script>
 
     // setting up the canvas and one paper tool
-    var canvas = document.getElementById('myCanvas');
+var canvas = document.getElementById('myCanvas');
     paper.setup(canvas);
     var tool = new paper.Tool();
 
     // getting the URL (you may want to use for Exercise 3)
     var url = window.location.href;
-
+    if (url == 'https://p3-websockets-csn1011-collinneale169479.codeanyapp.com/draw/?size=large'){
+      var mode = 'all';
+    }
+    else{ var mode = 'small';}
     // var socket = new WebSocket(
     //     'wss://<your url here>/ws/draw');
+window.addEventListener('devicemotion', function(event) {
+  if(event.acceleration.x > 2){
+ const context = canvas.getContext('2d');
+context.clearRect(0, 0, canvas.width, canvas.height);
 
+  }
+});
+  
+  window.addEventListener('deviceorientation', function(event) {
+  if(event.gamma > 15){
+    console.log(all_lines);
+    newlist = all_lines
+    var newcol = Math.floor((Math.random() * 15) + 1);
+    ID = newcol
+    for (i = 0; i < newlist.length-3; i=i+4){
+      var a = newlist[i];
+      var b = newlist[i+1];
+      var c = newlist[i+2];
+      var d = newlist[i+3];
+      update(a,b,c,d, newcol)
+    }}
+});
 
 </script>
+<script>
+var draw = false;
+var x = 0;
+var y = 0;
+
+const dim = canvas.getContext('2d');
+
+// The x and y offset of the canvas from the edge
+// of the page.
+const rect = canvas.getBoundingClientRect();
+
+// Add the event listeners for mousedown, mousemove, and mouseup
+canvas.addEventListener('mousedown', e => {
+  x = e.clientX - rect.left;
+  y = e.clientY - rect.top;
+  draw = true;
+});
+canvas.addEventListener('mousemove', e => {
+  if (draw === true) {
+    line(dim, x, y, e.clientX - rect.left, e.clientY - rect.top);
+    x = e.clientX - rect.left;
+    y = e.clientY - rect.top;
+  }
+});
+canvas.addEventListener('mouseup', e => {
+  if (draw === true) {
+    line(dim, x, y, e.clientX - rect.left, e.clientY - rect.top);
+    x = 0;
+    y = 0;
+    draw = false;
+  }
+});
+function line(dim, x1, y1, x2, y2) {
+  line_hist+=[ID,x1,y1,x2,y2];
+  all_lines.push(x1);
+  all_lines.push(y1);
+  all_lines.push(x2);
+  all_lines.push(y2);
+  console.log(all_lines)
+  dim.beginPath();
+  dim.strokeStyle = colordict[ID];
+  dim.lineWidth = 1;
+  dim.moveTo(x1, y1);
+  dim.lineTo(x2, y2);
+  dim.stroke();
+  dim.closePath();
+  socket.send(line_hist);
+  line_hist = []
+}
+  
+function update(x1, y1, x2, y2, colorID) {
+  var n = document.getElementById('myCanvas');
+  var m = n.getContext('2d');
+  m.beginPath();
+  m.strokeStyle = colordict[colorID];
+  m.lineWidth = 1;
+  m.moveTo(x1, y1);
+  m.lineTo(x2, y2);
+  m.stroke();
+  m.closePath();
+}
+ </script>
+  
+
 </html>
